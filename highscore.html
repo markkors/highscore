@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .hs_container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            background-color: white;
+            transition: background-color 1.5s;
+        }
+
+        .back {
+            background-color: lightsalmon;
+        }
+
+        .row>div {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div>Uw laatste bezoek was:</div>
+    <div id="last_date"></div>
+    <div id="last_time"></div>
+    <hr>
+    <h1>highscore lijst</h1>
+    <div class="hs_container" id="mycontainer">
+        <div>Geen scores aanwezig</div>
+    </div>
+    <hr>
+    <button id="btnAdd">Add new highscore</button>
+    <button id="btnRemove">Remove Highscores</button>
+    <script>
+
+        // een array voor de highscores in op te slaan
+        let hs = [];
+        // een variabele waarmee je het laatst toegevoegde id kan bijhouden    
+        let lastid = null;
+
+        // dit is het highscore object (blauwdruk)
+        class highscore {
+            constructor(id,n, s, d) {
+                this.id = id
+                this.naam = n;
+                this.score = s;
+                this.date = d;
+            }
+        }
+
+        // stap 1 : lees oude highscores - deserialize
+        hs = JSON.parse(leesCookie("hsall"));
+        // sorteer array
+        hs = sorteer(hs);
+        if(hs == null){
+            // als de array leeg is maak je een nieuwe array
+            hs = [];
+        }
+
+        // stap 2
+        // met de render functie kan je de highscores tonen
+        render();
+
+        // de sorteer functie sorteert de highscores van laag naar hoog
+        function sorteer(data) {
+            if (data != null) {
+                data.sort((a, b) => {
+                    return a.score - b.score;
+                });
+            }
+            return data;
+        }
+
+        // de render functie toont de highscores in de browser
+        function render() {
+            let hsc = document.getElementById("mycontainer");
+            hsc.innerHTML = "";
+
+            if (hs != null && hs.length > 0) {
+                hs.forEach(hse => {
+                    let d = document.createElement("div");
+                    d.setAttribute("class", "row");
+                    // als het id gelijk is aan het laatst toegevoegde id dan geef je de rij een andere kleur
+                    if (hse.id == lastid) {
+                        d.setAttribute("class", "row back");
+                    }
+                    let d1 = document.createElement("div");
+                    d1.innerText = hse.date;
+                    let d2 = document.createElement("div");
+                    d2.innerText = hse.naam;
+                    let d3 = document.createElement("div");
+                    d3.innerText = hse.score;
+                    d.appendChild(d1);
+                    d.appendChild(d2);
+                    d.appendChild(d3);
+                    hsc.appendChild(d);
+                });
+                // na 1.5 seconden worden de rijen weer wit
+                setTimeout(function () {
+                    document.querySelectorAll(".row").forEach(function (r) {
+                        r.classList.remove("back");
+                    });
+                }, 1500);
+            } else {
+                let d = document.createElement("div");
+                d.innerText = "Geen scores aanwezig";
+                hsc.appendChild(d);
+            }
+        }
+
+        // druk op de knop om een nieuwe highscore toe te voegen
+        document.getElementById("btnAdd").addEventListener("click", function () {
+            // maak een nieuwe highscore aan en geef deze een uniek id
+            let id = (hs != null) ? hs.length+1 : 0;
+            lastid = id;
+            // een random naam
+            let rndname = Math.random().toString(36).substring(7);
+            // een random score
+            let rndscore = Math.floor(Math.random() * 100);
+            // de huidige datum
+            let now = new Date().toLocaleDateString();
+            // voeg de highscore toe aan de array
+            hs.push(new highscore(id,rndname, rndscore, now));
+            // schrijf de array weg naar de cookie
+            maakCookie("hsall", JSON.stringify(hs), 7);
+            // sorteer de array
+            sorteer(hs);
+            // toon de highscores
+            render();
+        });
+
+        document.getElementById("btnRemove").addEventListener("click", function () {
+            // verwijder de cookie
+            verwijderCookie("hsall");
+            // maak de array leeg
+            hs = [];
+            // toon de highscores
+            render();
+        });
+
+        // start hier je code voor het laatste bezoek te tonen
+
+        // stap 1 - lees cookies
+        let last_date = leesCookie("last_date");
+        let last_time = leesCookie("last_time");
+
+        // stap 2
+        // print de laatste waarde in de browser (als geen null)
+        document.getElementById("last_date").innerText = last_date;
+        document.getElementById("last_time").innerText = last_time;
+
+
+        // stap 3 - schrijf nieuw cookie
+        maakCookie("last_date", new Date().toLocaleDateString(), 1)
+        maakCookie("last_time", new Date().toLocaleTimeString(), 1)
+
+    
+        // cookie functie om een cookie te maken
+        function maakCookie(naam, waarde, dagen) {
+            var expires = new Date(Date.now() + dagen * 864e5).toUTCString();
+            document.cookie = `${naam}=${waarde};expires=${expires};path=/`;
+        }
+
+        // cookie functie om een cookie te lezen
+        function leesCookie(naam) {
+            const name = naam + "=";
+            const cookies = decodeURIComponent(document.cookie).split(';');
+            const cookie = cookies.find(function (c) {
+                return c.trim().startsWith(name);
+            });
+            // ternary operator (shorthand if statement)
+            return cookie ? cookie.trim().substring(name.length) : null;
+        }
+
+        function verwijderCookie(naam) {
+            document.cookie = `${naam}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+        }
+    </script>
+</body>
+
+</html>
